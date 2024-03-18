@@ -1,0 +1,146 @@
+﻿Program.Sub.Preflight.Start
+	V.Global.sErrorLogFilename.Declare
+	V.Global.iCon.Declare(Long,0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.Try
+	V.Local.sInventoryBrowserFilename.Declare
+	V.Local.sBomBrowserFilename.Declare
+	V.Local.sOpCodeBrowserFilename.Declare
+	V.Local.sInvExtraTextFilename.Declare
+	V.Local.sQuery.Declare
+	V.Local.bUseRevision.Declare
+	V.Local.iRet.Declare
+	
+	'Create Object Database connection
+	F.Global.Object.CreateDB("oDatabase",V.Caller.CompanyCode,V.Ambient.DBServerName,True,v.Global.iCon)
+	
+	F.ODBC.Connection!con.OpenCompanyConnection(600)
+	
+	'Set Log file Path Directory & Filename
+	F.Intrinsic.String.Build("{0}\{1}",V.Caller.LocalGSSTempDir,"GAB_6169_Error.log",V.Global.sErrorLogFilename)
+	
+	'Set the filename for the XML filenames
+	F.Intrinsic.String.Build("{0}GAB_6169_InventoryBrowser_{1}.xml",V.Caller.GasDir,V.Caller.CompanyCode,V.Local.sInventoryBrowserFilename)
+	F.Intrinsic.String.Build("{0}GAB_6169_BomBrowser_{1}.xml",V.Caller.GasDir,V.Caller.CompanyCode,V.Local.sBomBrowserFilename)
+	F.Intrinsic.String.Build("{0}GAB_6169_OpCodeBrowser_{1}.xml",V.Caller.GasDir,V.Caller.CompanyCode,V.Local.sOpCodeBrowserFilename)
+	F.Intrinsic.String.Build("{0}GAB_6169_InvExtraText_{1}.xml",V.Caller.GasDir,V.Caller.CompanyCode,V.Local.sInvExtraTextFilename)
+	
+'	'Generate InventoryBrowser XML file
+'	f.Global.Object.Create("oParts","Inventory.Parts","oDatabase",V.Global.iCon,True)
+'	f.Global.Object.Create("oExtraTextParts","Inventory.Support.ExtraTexts","oDatabase",V.Global.iCon,True)
+'	f.Data.Linq.Join("LEFTJOIN","OBJECT","oParts*!*P",1286,"","","~~~~~~~~~~~~~~~~~","~~~","OBJECT","oExtraTextParts*!*E",3,"","","~~~~~~~~~~~~~~~~~","~~~","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As PartRev*!*P.LocationCode As PartLoc*!*P.Information.ProductLine.ProductLineCode As ProdLine*!*P.Description.Primary As Description*!*P.Description.Alternate1 As Description1*!*P.Description.Alternate2 As Description2*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty*!*P.Scheduling.LeadTime As LeadTime*!*P.Cost.MonetaryValue.Company.Unit As Cost*!*P.Cost.Alternate.MonetaryValue.Company.Unit As AltCost","","","","dtInventoryBrowser",True)
+''	f.Data.Linq.Join("LEFTJOIN","OBJECT","oParts*!*P",1466,"","","","OBJECT","oExtraTextParts*!*E",3,"","","~~~~~~~~~~~~~~~~~","~~~","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As Rev*!*P.LocationCode As Loc*!*P.Description.Primary As Description*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty","","","","dtInventoryBrowser",True)
+'	f.Global.Object.Dispose("oParts")
+'	f.Global.Object.Dispose("oExtraTextParts")
+'	F.Global.Object.ExportToMessagePackFile(V.Local.sInventoryBrowserFilename,"dtInventoryBrowser")
+'	F.Data.DataTable.Close("dtInventoryBrowser")
+		
+'	'Generate InventoryBrowser XML file
+'	f.Global.Object.Create("oParts","Inventory.Parts","oDatabase",V.Global.iCon,True)
+'	f.Global.Object.Load("oParts",1286,"","","~~~~~~~~~~~~~~~~~","~~~",V.Local.iRet)
+'	f.Global.Object.Create("oExtraTextParts","Inventory.Support.ExtraTexts","oDatabase",V.Global.iCon,True)
+'	f.Global.Object.Load("oExtraTextParts",3,"","","~~~~~~~~~~~~~~~~~","~~~",V.Local.iRet)
+'	f.Data.Linq.Join("LEFTJOIN","OBJECTONLY","oParts*!*P","OBJECTONLY","oExtraTextParts*!*E","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As PartRev*!*P.LocationCode As PartLoc*!*P.Information.ProductLine.ProductLineCode As ProdLine*!*P.Description.Primary As Description*!*P.Description.Alternate1 As Description1*!*P.Description.Alternate2 As Description2*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty*!*P.Scheduling.LeadTime As LeadTime*!*P.Cost.MonetaryValue.Company.Unit As Cost*!*P.Cost.Alternate.MonetaryValue.Company.Unit As AltCost","","","","oInventoryBrowser",True)
+''	f.Data.Linq.Join("LEFTJOIN","OBJECT","oParts*!*P",1466,"","","","OBJECT","oExtraTextParts*!*E",3,"","","~~~~~~~~~~~~~~~~~","~~~","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As Rev*!*P.LocationCode As Loc*!*P.Description.Primary As Description*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty","","","","dtInventoryBrowser",True)
+'	f.Global.Object.Dispose("oParts")
+'	f.Global.Object.Dispose("oExtraTextParts")
+'	f.Global.Object.ExportToXMLCollection("oInventoryBrowser",V.Local.sInventoryBrowserFilename)
+'	f.Global.Object.Dispose("oInventoryBrowser")	
+	
+	'Generate InventoryBrowser XML file
+	f.Global.Object.Create("oParts","Inventory.Parts","oDatabase",V.Global.iCon,True)
+	f.Global.Object.Create("oExtraTextParts","Inventory.Support.ExtraTexts","oDatabase",V.Global.iCon,True)
+	f.Data.Linq.Join("LEFTJOIN","OBJECT","oParts*!*P",1286,"","","~~~~~~~~~~~~~~~~~","~~~","OBJECT","oExtraTextParts*!*E",3,"","","~~~~~~~~~~~~~~~~~","~~~","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As PartRev*!*P.LocationCode As PartLoc*!*P.Information.ProductLine.ProductLineCode As ProdLine*!*P.Description.Primary As Description*!*P.Description.Alternate1 As Description1*!*P.Description.Alternate2 As Description2*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty*!*P.Scheduling.LeadTime As LeadTime*!*P.Cost.MonetaryValue.Company.Unit As Cost*!*P.Cost.Alternate.MonetaryValue.Company.Unit As AltCost","","","","dtInventoryBrowser",True)
+'	f.Data.Linq.Join("LEFTJOIN","OBJECT","oParts*!*P",1466,"","","","OBJECT","oExtraTextParts*!*E",3,"","","~~~~~~~~~~~~~~~~~","~~~","P.PartNumber = E.PartNumber AND P.PartNumberRevision = E.PartNumberRevision","P.PartNumber As Part*!*P.PartNumberRevision As Rev*!*P.LocationCode As Loc*!*P.Description.Primary As Description*!*E.Information.Comment As Text*!*P.Information.UnitOfMeasure.UnitOfMeasureCode As UM_INVENTORY*!*P.InventoryStatus.OnHand As OnHand_Qty","","","","dtInventoryBrowser",True)
+	f.Global.Object.Dispose("oParts")
+	f.Global.Object.Dispose("oExtraTextParts")
+	F.Data.DataTable.SaveToXML("dtInventoryBrowser",0,True,V.Local.sInventoryBrowserFilename)
+	F.Data.DataTable.Close("dtInventoryBrowser")
+	
+	'Generate BomBrowser XML file
+	F.Intrinsic.Control.If(V.Local.bUseRevision)
+		V.Local.sQuery.Set("select LEFT(BM.PARENT,17) As Part, RIGHT(BM.PARENT,3) As Rev, RTRIM(IM.DESCRIPTION) As Description, RTRIM(ET.TEXT) As ExtraDescription from V_BOM_MSTR BM LEFT JOIN (SELECT PART, DESCRIPTION FROM V_INVENTORY_MSTR GROUP BY PART, DESCRIPTION) IM ON BM.PARENT = IM.PART LEFT JOIN V_INV_EXTRA_TEXT ET ON IM.PART = ET.PART where BM.SEQUENCE_BOM = '0000' ORDER BY BM.PARENT")
+'		V.Local.sQuery.Set("select LEFT(BM.PARENT,17) As Part, RIGHT(BM.PARENT,3) As Rev, IF(RTRIM(LTRIM(ET.TEXT))='',IM.DESCRIPTION,ET.TEXT) AS Description from V_BOM_MSTR BM LEFT JOIN V_INVENTORY_MSTR IM ON BM.PARENT = IM.PART LEFT JOIN V_INV_EXTRA_TEXT ET ON IM.PART = ET.PART where BM.SEQUENCE_BOM = '0000' ORDER BY BM.PARENT")
+	F.Intrinsic.Control.Else
+		V.Local.sQuery.Set("select BM.PARENT As Part, '' As Rev, RTRIM(IM.DESCRIPTION) As Description, RTRIM(ET.TEXT) As ExtraDescription from V_BOM_MSTR BM LEFT JOIN (SELECT PART, DESCRIPTION FROM V_INVENTORY_MSTR GROUP BY PART, DESCRIPTION) IM ON BM.PARENT = IM.PART LEFT JOIN V_INV_EXTRA_TEXT ET ON IM.PART = ET.PART where BM.SEQUENCE_BOM = '0000' ORDER BY BM.PARENT")
+'		V.Local.sQuery.Set("select BM.PARENT As Part, '' As Rev, IF(RTRIM(LTRIM(ET.TEXT))='',IM.DESCRIPTION,ET.TEXT) AS Description from V_BOM_MSTR BM LEFT JOIN V_INVENTORY_MSTR IM ON BM.PARENT = IM.PART LEFT JOIN V_INV_EXTRA_TEXT ET ON IM.PART = ET.PART where BM.SEQUENCE_BOM = '0000' ORDER BY BM.PARENT")
+	F.Intrinsic.Control.EndIf
+	F.Data.DataTable.CreateFromSQL("dtBomBrowser","con",V.Local.sQuery,True)
+'	F.Global.Object.ExportToMessagePackFile(V.Local.sBomBrowserFilename,"dtBomBrowser")
+	F.Data.DataTable.SaveToXML("dtBomBrowser",0,True,V.Local.sBomBrowserFilename)
+	F.Data.DataTable.Close("dtBomBrowser")
+	
+	'Generate OpCodeBrowser XML file
+	V.Local.sQuery.Set("select MACHINE AS OperationIdentifier, OPERATION As OpCode, DESCRIPTION As OpCodeDesc from OP_CODES where LMO = 'M'")
+	F.Data.DataTable.CreateFromSQL("dtOpCodeBrowser","con",V.Local.sQuery,True)
+'	F.Global.Object.ExportToMessagePackFile(V.Local.sOpCodeBrowserFilename,"dtOpCodeBrowser")
+	F.Data.DataTable.SaveToXML("dtOpCodeBrowser",0,True,V.Local.sOpCodeBrowserFilename)
+	F.Data.DataTable.Close("dtOpCodeBrowser")
+	
+	'Generate Inventory Extra Text XML file
+	V.Local.sQuery.Set("Select Part,Text from V_INV_EXTRA_TEXT")
+	F.Data.DataTable.CreateFromSQL("dtInvExtraText","con",V.Local.sQuery,True)
+	F.Data.DataTable.SaveToXML("dtInvExtraText",0,True,V.Local.sInvExtraTextFilename)
+	F.Data.DataTable.Close("dtInvExtraText")
+	
+	F.Intrinsic.Control.If(V.ODBC.con.State,=,1)
+		F.ODBC.Connection!con.close
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(WriteErrorMessage,"ScriptPath",V.Ambient.ScriptPath,"Subroutine",V.Ambient.CurrentSubroutine,"ErrorTimeStamp",V.Ambient.Now,"ErrorNumber",V.Ambient.ErrorNumber,"ErrorDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.WriteErrorMessage.Start
+F.Intrinsic.Control.Try
+	V.Local.bFileExists.Declare(Boolean)
+	V.Local.sErrorMessage.Declare(String)
+	V.Local.iFileSize.Declare(Long)
+	
+	F.Intrinsic.Control.If(V.ODBC.con.State,=,1)
+		F.ODBC.Connection!con.close
+	F.Intrinsic.Control.EndIf
+	
+	'Format the Error Message
+	F.Intrinsic.String.Build("Error Time: {0}{1}",V.Args.ErrorTimeStamp,V.Ambient.NewLine,V.Local.sErrorMessage)
+	F.Intrinsic.String.Build("{0}Script Path: {1}{2}",V.Local.sErrorMessage,V.Args.ScriptPath,V.Ambient.NewLine,V.Local.sErrorMessage)
+	F.Intrinsic.String.Build("{0}Subroutine: {1}{2}",V.Local.sErrorMessage,V.Args.Subroutine,V.Ambient.NewLine,V.Local.sErrorMessage)
+	F.Intrinsic.String.Build("{0}Error Number: {1}{2}",V.Local.sErrorMessage,V.Args.ErrorNumber,V.Ambient.NewLine,V.Local.sErrorMessage)
+	F.Intrinsic.String.Build("{0}Error Description: {1}{2}",V.Local.sErrorMessage,V.Args.ErrorDescription,V.Ambient.NewLine,V.Local.sErrorMessage)
+	F.Intrinsic.String.Build("{0}========================{1}",V.Local.sErrorMessage,V.Ambient.NewLine,V.Local.sErrorMessage)
+
+	'Check whether the error log file exists.
+	F.Intrinsic.File.Exists(V.Global.sErrorLogFilename,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.GetFileSize(V.Global.sErrorLogFilename,V.Local.iFileSize)
+		F.Intrinsic.Control.If(V.Local.iFileSize,>,50000000)	'50 MB
+			F.Intrinsic.File.DeleteFile(V.Global.sErrorLogFilename)
+			F.Intrinsic.File.String2File(V.Global.sErrorLogFilename,V.Local.sErrorMessage)
+			F.Intrinsic.Control.End		
+		F.Intrinsic.Control.Else
+			F.Intrinsic.File.Append2File(V.Global.sErrorLogFilename,V.Local.sErrorMessage)
+			F.Intrinsic.Control.End
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.File.String2File(V.Global.sErrorLogFilename,V.Local.sErrorMessage)
+		F.Intrinsic.Control.End		
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.End
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.WriteErrorMessage.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8577.26074$}$1
+${$6$}$tdjohan$}$20230704161655471$}$8rAQhOSvlohpQhMDm1j544LwmwXnRbkh4uSak9AQO5KED6QS8sQLUJKjm3rJlEQ83T+0yMBh6zk=
+Program.Sub.Comments.End

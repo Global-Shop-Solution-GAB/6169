@@ -1,0 +1,245 @@
+'This library helps with the usage of the 6008 call wrapper (Upload Job Cost Sequence Lines to Router Header Master, UPLJOBST). To use it, simply add a row to the 6008 datatable for each line in the upload file. 
+'From there, call 6008Sync or 6008Async. The program will run through each row in the datatable, pad the values as necessary, write the lines to the file,
+'and then call the callwrapper for that row. Once complete, the prgoram will delete all rows from the 6008 Datatable.
+
+'Column				=	Parameter						=	Format		=	Size
+'===========================================================================================================
+'WONo				=	*Work Order Number*				= 				= 	6
+'Suffix				= 	Work Order Suffix				= 				= 	3
+'Seq				=	Work Order Sequence				= 				=	6
+'OpCode				=	Operation Code					=				= 	6
+'SetUp				=	"Y" if step contains Set UP		=				=	1
+'LMO				= 	*LMOCT*							=				=	1
+'OpDesc				=	Description of Operation		=				=	30
+'UM					=	Unit of Measure					=				=	2
+'PWC				=	Dept/WC/Part/OS Code etc		=				=	20
+'						- Machine 1-5 uses the same space PWC 
+'						  uses, each Machine uses 4 characters
+'RouterNo			=	Router No						=				=	20
+'RouterSeq			=	Router Sequence					=				=	6
+'SetupTime			=	Setup Time						=	+-8.4		=	16
+'Unit				=	Unit (Quantity to make 1)		=	+-8.4		=	16
+'Burden				=	Burden Rate						=	+-8.4		=	16
+'EstHrs				=	Estimated Hours					=	+-8.4		=	16
+'StartDate			=	Start Date						=	MMDDYY		=	6
+'DueDate			=	Due Date						=	MMDDYY		=	6
+'OrderDate			=	Order Date 						=	MMDDYY		=	6
+'Rate				=	Rate							=	+-8.4		=	16
+'SortCode			=	Sort Code						=				=	20
+'ProjGrp			=	Project Group					=				=	6
+'SignoffUser		=	Signoff User/Group ID			=				=	8
+'ComplReq			=	Completion Req for next step	=	Y/N			=	1
+'SaveBack2Rt		=	Do Not Save Changes to RT		=	Y/N			=	1
+'Overlap			=	Overlap (Decimal % w/o decimal)	=	2.0			=	16
+'===========================================================================================================
+'*Parameter* indicates a required parameter for each row
+
+Program.Sub.Preflight.Start
+V.Global.s6008Error.Declare(String, "")
+V.Global.s6008Mode.Declare(String, "NS")
+V.Global.s6008Option.Declare(String, "50")
+
+F.Data.DataTable.Create("6008", True)
+F.Data.DataTable.AddColumn("6008", "WONo", "String", "      ")
+F.Data.DataTable.AddColumn("6008", "Suffix", "String", "   ")
+F.Data.DataTable.AddColumn("6008", "Seq", "String", "      ")
+F.Data.DataTable.AddColumn("6008", "OpCode", "String", "      ")
+F.Data.DataTable.AddColumn("6008", "SetUp", "String", " ")
+F.Data.DataTable.AddColumn("6008", "LMO", "String", " ")
+F.Data.DataTable.AddColumn("6008", "OpDesc", "String", "                              ")
+F.Data.DataTable.AddColumn("6008", "UM", "String", "  ")
+F.Data.DataTable.AddColumn("6008", "PWC", "String", "                    ")
+F.Data.DataTable.AddColumn("6008", "RouterNo", "String", "                    ")
+F.Data.DataTable.AddColumn("6008", "RouterSeq", "String", "      ")
+F.Data.DataTable.AddColumn("6008", "SetupTime", "String", "00000000000.0000")
+F.Data.DataTable.AddColumn("6008", "Unit", "String", "00000000000.0000")
+F.Data.DataTable.AddColumn("6008", "Burden", "String", "00000000000.0000")
+F.Data.DataTable.AddColumn("6008", "EstHrs", "String", "00000000000.0000")
+F.Data.DataTable.AddColumn("6008", "StartDate", "String", "000000")
+F.Data.DataTable.AddColumn("6008", "DueDate", "String", "000000")
+F.Data.DataTable.AddColumn("6008", "OrderDate", "String", "999999")
+F.Data.DataTable.AddColumn("6008", "Rate", "String", "00000000000.0000")
+F.Data.DataTable.AddColumn("6008", "SortCode", "String", "                    ")
+F.Data.DataTable.AddColumn("6008", "ProjGrp", "String", "      ")
+F.Data.DataTable.AddColumn("6008", "SignoffUser", "String", "        ")
+F.Data.DataTable.AddColumn("6008", "ComplReq", "String", " ")
+F.Data.DataTable.AddColumn("6008", "SaveBack2Rt", "String", " ")
+F.Data.DataTable.AddColumn("6008", "Overlap", "String", "                ")
+
+Program.Sub.Preflight.End
+
+Program.Sub.6008.Start
+F.Intrinsic.Control.Try
+
+	V.Local.sFileContent.Declare(String, "")
+	V.Local.sParameters.Declare(String, "")
+	V.Local.sFilePath.Declare(String, "")
+	V.Local.sRet.Declare(String, "")
+	V.Local.iCount.Declare(Long, 0)
+	v.Local.fRet.Declare(Float, 0)
+
+	F.Intrinsic.Control.If(V.DataTable.6008.RowCount, >, 0)
+		F.Intrinsic.Control.For(V.Local.iCount, 0, V.DataTable.6008.RowCount--, 1)
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).WONo!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "WONo", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).Suffix!FieldVal, " ", 3, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Suffix", V.Local.sRet)
+
+			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Seq!FieldVal, "0", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Seq", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).OpCode!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "OpCode", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).SetUp!FieldVal, " ", 1, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "SetUp", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).LMO!FieldVal, " ", 1, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "LMO", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).OpDesc!FieldVal, " ", 30, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "OpDesc", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).UM!FieldVal, " ", 2, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "UM", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).PWC!FieldVal, " ", 20, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "PWC", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).RouterNo!FieldVal, " ", 20, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "RouterNo", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).RouterSeq!FieldVal, "0", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "RouterSeq", V.Local.sRet)
+
+			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).SetupTime!FieldVal, "0", 16, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "SetupTime", V.Local.sRet)
+
+'			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Unit!FieldVal, "0", 16, V.Local.sRet)
+'			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Unit", V.Local.sRet)
+			F.Intrinsic.Control.If(V.DataTable.6008(V.Local.iCount).Unit!FieldValFloat,<,0)
+				F.Intrinsic.Math.Abs(V.DataTable.6008(V.Local.iCount).Unit!FieldValFloat,v.Local.fRet)
+				F.Intrinsic.String.LPad(v.Local.fRet.String, "0", 15, V.Local.sRet)
+				F.Intrinsic.String.Concat(v.Local.sRet,"-",v.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Unit", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Unit!FieldVal, "0", 16, V.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Unit", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+
+'			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Burden!FieldVal, "0", 16, V.Local.sRet)
+'			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Burden", V.Local.sRet)
+			F.Intrinsic.Control.If(V.DataTable.6008(V.Local.iCount).Burden!FieldValFloat,<,0)
+				F.Intrinsic.Math.Abs(V.DataTable.6008(V.Local.iCount).Burden!FieldValFloat,v.Local.fRet)
+				F.Intrinsic.String.LPad(v.Local.fRet.String, "0", 15, V.Local.sRet)
+				F.Intrinsic.String.Concat(v.Local.sRet,"-",v.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Burden", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Burden!FieldVal, "0", 16, V.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Burden", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+
+'			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).EstHrs!FieldVal, "0", 16, V.Local.sRet)
+'			F.Data.DataTable.SetValue("6008", V.Local.iCount, "EstHrs", V.Local.sRet)
+			F.Intrinsic.Control.If(V.DataTable.6008(V.Local.iCount).EstHrs!FieldValFloat,<,0)
+				F.Intrinsic.Math.Abs(V.DataTable.6008(V.Local.iCount).EstHrs!FieldValFloat,v.Local.fRet)
+				F.Intrinsic.String.LPad(v.Local.fRet.String, "0", 15, V.Local.sRet)
+				F.Intrinsic.String.Concat(v.Local.sRet,"-",v.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "EstHrs", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).EstHrs!FieldVal, "0", 16, V.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "EstHrs", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).StartDate!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "StartDate", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).DueDate!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "DueDate", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).OrderDate!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "OrderDate", V.Local.sRet)
+
+'			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Rate!FieldVal, "0", 16, V.Local.sRet)
+'			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Rate", V.Local.sRet)
+			F.Intrinsic.Control.If(V.DataTable.6008(V.Local.iCount).Rate!FieldValFloat,<,0)
+				F.Intrinsic.Math.Abs(V.DataTable.6008(V.Local.iCount).Rate!FieldValFloat,v.Local.fRet)
+				F.Intrinsic.String.LPad(v.Local.fRet.String, "0", 15, V.Local.sRet)
+				F.Intrinsic.String.Concat(v.Local.sRet,"-",v.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Rate", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Rate!FieldVal, "0", 16, V.Local.sRet)
+				F.Data.DataTable.SetValue("6008", V.Local.iCount, "Rate", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).SortCode!FieldVal, " ", 20, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "SortCode", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).ProjGrp!FieldVal, " ", 6, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "ProjGrp", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).SignoffUser!FieldVal, " ", 8, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "SignoffUser", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).ComplReq!FieldVal, " ", 1, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "ComplReq", V.Local.sRet)
+
+			F.Intrinsic.String.RPad(V.DataTable.6008(V.Local.iCount).SaveBack2Rt!FieldVal, " ", 1, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "SaveBack2Rt", V.Local.sRet)
+
+			F.Intrinsic.String.LPad(V.DataTable.6008(V.Local.iCount).Overlap!FieldVal, "0", 16, V.Local.sRet)
+			F.Data.DataTable.SetValue("6008", V.Local.iCount, "Overlap", V.Local.sRet)
+
+		F.Intrinsic.Control.Next(V.Local.iCount)
+
+		F.Data.DataView.Create("6008", "6008View", 22)
+		F.Data.DataView.ToString("6008", "6008View", "", V.Ambient.NewLine, V.Local.sFileContent)
+
+		F.Intrinsic.String.Build("{0}\JOBCOST.TXT",V.Caller.FilesDir,V.Local.sFilePath)
+		F.Intrinsic.File.String2File(V.Local.sFilePath, V.Local.sFileContent)
+		F.Data.DataView.Close("6008", "6008View")
+
+		F.Intrinsic.String.ConcatCallWrapperArgs(V.Global.s6008Mode, V.Global.s6008Option, V.Local.sParameters)
+
+		F.Intrinsic.Control.SelectCase(V.Args.CallWrapperType)
+		F.Intrinsic.Control.Case(0)
+			F.Global.General.CallWrapperSync(6008, V.Local.sParameters)
+		F.Intrinsic.Control.Case(1)
+			F.Global.General.CallWrapperAsync(6008, V.Local.sParameters)
+		F.Intrinsic.Control.EndSelect
+
+	F.Intrinsic.Control.EndIf
+
+	F.Data.DataTable.DeleteRow("6008")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6008,"Sub",V.Ambient.CurrentSubroutine,"ErrNo",V.Ambient.ErrorNumber,"ErrDesc",V.Ambient.ErrorDescription,"Row",V.Local.iCount)
+F.Intrinsic.Control.EndTry
+Program.Sub.6008.End
+
+Program.Sub.6008Sync.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6008,"CallWrapperType",0)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6008, "Sub", V.Ambient.CurrentSubroutine, "ErrNo", V.Ambient.ErrorNumber, "ErrDesc", V.Ambient.ErrorDescription,"Row",-2)
+F.Intrinsic.Control.EndTry
+Program.Sub.6008Sync.End
+
+Program.Sub.6008Async.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6008,"CallWrapperType",1)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6008, "Sub", V.Ambient.CurrentSubroutine, "ErrNo", V.Ambient.ErrorNumber, "ErrDesc", V.Ambient.ErrorDescription,"Row",-2)
+F.Intrinsic.Control.EndTry
+Program.Sub.6008Async.End
+
+Program.Sub.CatchError6008.Start
+V.Local.iActualRow.Declare(Long)
+F.Intrinsic.Math.Add(V.Args.Row, 1, V.Local.iActualRow)
+F.Intrinsic.String.Build("{0}*!*{1}*!*{2}*!*{3}", V.Args.Sub, V.Args.ErrNo, V.Args.ErrDesc,V.Local.iActualRow, V.Global.s6008Error)
+Program.Sub.CatchError6008.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+Program.Sub.Comments.End
